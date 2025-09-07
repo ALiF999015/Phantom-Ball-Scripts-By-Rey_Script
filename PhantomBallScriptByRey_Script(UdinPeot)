@@ -1,0 +1,278 @@
+-- 🌌 Phantom Ball Hub V8 - Modern GUI + Perfect Auto Parry
+-- Tabs: Parry / Spam / Settings
+-- Created by Rey_Script
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Remote
+local ParryRemote = ReplicatedStorage:WaitForChild("TS")
+    :WaitForChild("GeneratedNetworkRemotes")
+    :WaitForChild("RE_4.6848415795802784e+76")
+local ParryArg = {2.933813859058389e+76}
+
+-- Vars
+local AutoParryEnabled = false
+local AutoSpamEnabled = false
+local SpamSpeed = 0.5
+local MaxDistance = 30
+local SpamButton = nil
+local SpamRunning = false
+
+-- 🎨 GUI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 320, 0, 300)
+Frame.Position = UDim2.new(0.35, 0, 0.3, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
+Frame.Active = true
+Frame.Draggable = true
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+-- Header
+local Header = Instance.new("Frame", Frame)
+Header.Size = UDim2.new(1, 0, 0, 35)
+Header.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, -60, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "🌌 Rey_Script - Phantom Ball"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(0, 150, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton", Header)
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+
+local MinBtn = Instance.new("TextButton", Header)
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(1, -60, 0.5, -12)
+MinBtn.Text = "_"
+MinBtn.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+MinBtn.TextColor3 = Color3.new(1, 1, 1)
+
+-- Tabs
+local TabBar = Instance.new("Frame", Frame)
+TabBar.Size = UDim2.new(1, 0, 0, 30)
+TabBar.Position = UDim2.new(0, 0, 0, 35)
+TabBar.BackgroundColor3 = Color3.fromRGB(235, 235, 235)
+
+local function CreateTab(name, pos)
+    local btn = Instance.new("TextButton", TabBar)
+    btn.Size = UDim2.new(0, 100, 1, 0)
+    btn.Position = UDim2.new(0, pos, 0, 0)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    btn.TextColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    return btn
+end
+
+local TabParry = CreateTab("Parry", 10)
+local TabSpam = CreateTab("Spam", 120)
+local TabSettings = CreateTab("Settings", 230)
+
+-- Content Area
+local Content = Instance.new("Frame", Frame)
+Content.Size = UDim2.new(1, -20, 1, -75)
+Content.Position = UDim2.new(0, 10, 0, 70)
+Content.BackgroundTransparency = 1
+
+local function ClearContent()
+    for _, v in pairs(Content:GetChildren()) do
+        v:Destroy()
+    end
+end
+
+-- PARITY TAB
+local function LoadParryTab()
+    ClearContent()
+    local Btn = Instance.new("TextButton", Content)
+    Btn.Size = UDim2.new(1, -20, 0, 30)
+    Btn.Position = UDim2.new(0, 10, 0, 10)
+    Btn.Text = "Auto Parry: " .. (AutoParryEnabled and "ON" or "OFF")
+    Btn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    Btn.MouseButton1Click:Connect(function()
+        AutoParryEnabled = not AutoParryEnabled
+        Btn.Text = "Auto Parry: " .. (AutoParryEnabled and "ON" or "OFF")
+    end)
+
+    local DistLabel = Instance.new("TextLabel", Content)
+    DistLabel.Size = UDim2.new(1, -20, 0, 20)
+    DistLabel.Position = UDim2.new(0, 10, 0, 50)
+    DistLabel.BackgroundTransparency = 1
+    DistLabel.Text = "Distance: " .. MaxDistance
+    DistLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+    local DistBox = Instance.new("TextBox", Content)
+    DistBox.Size = UDim2.new(0, 60, 0, 25)
+    DistBox.Position = UDim2.new(0, 10, 0, 75)
+    DistBox.Text = tostring(MaxDistance)
+    DistBox.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    DistBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+    DistBox.FocusLost:Connect(function()
+        local val = tonumber(DistBox.Text)
+        if val then
+            MaxDistance = val
+            DistLabel.Text = "Distance: " .. MaxDistance
+        end
+    end)
+end
+
+-- SPAM TAB
+local function LoadSpamTab()
+    ClearContent()
+    local Btn = Instance.new("TextButton", Content)
+    Btn.Size = UDim2.new(1, -20, 0, 30)
+    Btn.Position = UDim2.new(0, 10, 0, 10)
+    Btn.Text = "Auto Spam: " .. (AutoSpamEnabled and "ON" or "OFF")
+    Btn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    Btn.MouseButton1Click:Connect(function()
+        AutoSpamEnabled = not AutoSpamEnabled
+        Btn.Text = "Auto Spam: " .. (AutoSpamEnabled and "ON" or "OFF")
+    end)
+
+    local SpeedLabel = Instance.new("TextLabel", Content)
+    SpeedLabel.Size = UDim2.new(1, -20, 0, 20)
+    SpeedLabel.Position = UDim2.new(0, 10, 0, 50)
+    SpeedLabel.BackgroundTransparency = 1
+    SpeedLabel.Text = "Spam Speed: " .. SpamSpeed
+    SpeedLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+    local SpeedBox = Instance.new("TextBox", Content)
+    SpeedBox.Size = UDim2.new(0, 60, 0, 25)
+    SpeedBox.Position = UDim2.new(0, 10, 0, 75)
+    SpeedBox.Text = tostring(SpamSpeed)
+    SpeedBox.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    SpeedBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+    SpeedBox.FocusLost:Connect(function()
+        local val = tonumber(SpeedBox.Text)
+        if val then
+            SpamSpeed = math.max(0.05, val)
+            SpeedLabel.Text = "Spam Speed: " .. SpamSpeed
+        end
+    end)
+
+    local SpawnSpamBtn = Instance.new("TextButton", Content)
+    SpawnSpamBtn.Size = UDim2.new(1, -20, 0, 30)
+    SpawnSpamBtn.Position = UDim2.new(0, 10, 0, 110)
+    SpawnSpamBtn.Text = "Spawn Spam Button"
+    SpawnSpamBtn.BackgroundColor3 = Color3.fromRGB(180, 200, 255)
+    SpawnSpamBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    SpawnSpamBtn.MouseButton1Click:Connect(function()
+        if SpamButton and SpamButton.Parent then
+            SpamButton:Destroy()
+            SpamButton = nil
+            SpamRunning = false
+            return
+        end
+
+        local SpamFrame = Instance.new("Frame", ScreenGui)
+        SpamFrame.Size = UDim2.new(0, 120, 0, 60)
+        SpamFrame.Position = UDim2.new(0.8, 0, 0.7, 0)
+        SpamFrame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+        SpamFrame.Active = true
+        SpamFrame.Draggable = true
+        SpamButton = SpamFrame
+
+        local SpamToggle = Instance.new("TextButton", SpamFrame)
+        SpamToggle.Size = UDim2.new(1, -20, 0, 30)
+        SpamToggle.Position = UDim2.new(0, 10, 0, 15)
+        SpamToggle.Text = "Spam: OFF"
+        SpamToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        SpamToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+        SpamToggle.MouseButton1Click:Connect(function()
+            SpamRunning = not SpamRunning
+            SpamToggle.Text = "Spam: " .. (SpamRunning and "ON" or "OFF")
+            SpamToggle.BackgroundColor3 = SpamRunning and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(255, 100, 100)
+        end)
+
+        task.spawn(function()
+            while SpamFrame.Parent do
+                if SpamRunning then
+                    ParryRemote:FireServer(unpack(ParryArg))
+                end
+                task.wait(SpamSpeed)
+            end
+        end)
+    end)
+end
+
+-- SETTINGS TAB
+local function LoadSettingsTab()
+    ClearContent()
+    local Info = Instance.new("TextLabel", Content)
+    Info.Size = UDim2.new(1, -20, 1, -20)
+    Info.Position = UDim2.new(0, 10, 0, 10)
+    Info.BackgroundTransparency = 1
+    Info.Text = "⚡ Phantom Ball Hub V8\nCreated by Rey_Script\nModern GUI + Perfect Auto Parry"
+    Info.TextColor3 = Color3.fromRGB(0, 0, 0)
+    Info.TextSize = 16
+    Info.TextWrapped = true
+end
+
+-- Tab switching
+TabParry.MouseButton1Click:Connect(LoadParryTab)
+TabSpam.MouseButton1Click:Connect(LoadSpamTab)
+TabSettings.MouseButton1Click:Connect(LoadSettingsTab)
+
+LoadParryTab()
+
+-- Close & Minimize
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+MinBtn.MouseButton1Click:Connect(function()
+    Frame.Visible = not Frame.Visible
+end)
+
+-- 🔥 Perfect Auto Parry
+local lastParry = 0
+RunService.RenderStepped:Connect(function()
+    if AutoParryEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart.Position
+        for _, obj in pairs(workspace:GetChildren()) do
+            if obj:IsA("MeshPart") and obj.Name == "GameBall" then
+                local vel = obj.Velocity
+                local speed = vel.Magnitude
+                if speed > 5 then
+                    local predictedPos = obj.Position + vel * 0.05
+                    local dirToPlayer = (hrp - obj.Position).Unit
+                    local ballDir = vel.Unit
+                    local dot = dirToPlayer:Dot(ballDir)
+                    local predDist = (predictedPos - hrp).Magnitude
+
+                    if predDist <= MaxDistance and dot > 0.7 and tick() - lastParry > 0.3 then
+                        lastParry = tick()
+                        ParryRemote:FireServer(unpack(ParryArg))
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- 🔁 Auto Spam Loop
+task.spawn(function()
+    while task.wait(SpamSpeed) do
+        if AutoSpamEnabled then
+            ParryRemote:FireServer(unpack(ParryArg))
+        end
+    end
+end)
